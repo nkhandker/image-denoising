@@ -56,3 +56,20 @@ Then
     unzip SIDD_Small_sRGB_Only
 ```
 
+## Training the model 
+
+## Config 
+
+You'll need a config file that points to the various requirements for this, you should have a config.yaml that contains 
+
+```yaml
+    base_path: '/example/path/to/data/location/SIDD_Small_sRGB_Only/'
+    # in the base path what folder has the data
+    # /example/path/to/data/location/SIDD_Small_sRGB_Only/Data 
+    data_folder_name: 'Data'
+    # name of the scene file in the dir
+    # /example/path/to/data/location/SIDD_Small_sRGB_Only/Scene_Instances.txt
+    scene_file_name: 'Scene_Instances.txt'
+    # model_output_directory 
+    model_output_folder: '/example/path/to/models/'
+```
