@@ -1,0 +1,21 @@
+[project]
+name = "image-denoising"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Nahiyan Khandker",email = "nahiyan.khandker@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "torch (>=2.8.0,<3.0.0)",
+    "torchvision (>=0.23.0,<0.24.0)"
+]
+
+[tool.poetry]
+packages = [{include = "image_denoising", from = "src"}]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
