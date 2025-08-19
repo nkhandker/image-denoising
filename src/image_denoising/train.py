@@ -3,6 +3,7 @@ import torch.nn as nn
 from autoencoder import DenoisingAutoencoder
 from dataloader import SIDDDataset, create_dataloaders
 from pathlib import Path
+import yaml
 
 def train(model, train_loader, val_loader, num_epochs=50, lr=0.001):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -61,9 +62,24 @@ def train(model, train_loader, val_loader, num_epochs=50, lr=0.001):
 # Example usage
 if __name__ == "__main__":
 
-    data_directory = ''
-    model_directory = ''
-    train_loader, val_loader, test_loader = create_dataloaders(data_dir=data_directory)
+    config_path = ''
+
+    with open(config_path,'r') as f:
+        config = yaml.safe_load(f)
+
+    base_path = Path(config['base_path'])
+    data_directory = base_path / config['data_folder_name']
+    model_directory = Path(config['model_output_folder'])
+    scenes_path = base_path / config['scene_file_name']
+
+    scenes = []
+    with open(scenes_path, 'r') as f:
+        for line in f:
+                scene_name = line.strip()
+                if scene_name:  # Skip empty lines
+                    scenes.append(scene_name)
+
+    train_loader, val_loader, test_loader = create_dataloaders(scenes, data_directory)
     model = DenoisingAutoencoder(in_channels=3) 
 
     train_losses, val_losses = train(model,train_loader, val_loader, num_epochs=50)
