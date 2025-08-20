@@ -4,9 +4,10 @@ from autoencoder import DenoisingAutoencoder
 from dataloader import SIDDDataset, create_dataloaders
 from pathlib import Path
 import yaml
+import pandas as pd
+from datetime import datetime
 
-def train(model, train_loader, val_loader, num_epochs=50, lr=0.001):
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+def train(model, train_loader, val_loader, device, num_epochs=50, lr=0.001):
     model = model.to(device)
     
     criterion = nn.MSELoss()
@@ -62,7 +63,7 @@ def train(model, train_loader, val_loader, num_epochs=50, lr=0.001):
 # Example usage
 if __name__ == "__main__":
 
-    config_path = ''
+    config_path = '/home/nkhandker/projects/grad504/image-denoising/config.yaml'
 
     with open(config_path,'r') as f:
         config = yaml.safe_load(f)
@@ -82,12 +83,22 @@ if __name__ == "__main__":
     train_loader, val_loader, test_loader = create_dataloaders(scenes, data_directory)
     model = DenoisingAutoencoder(in_channels=3) 
 
-    train_losses, val_losses = train(model,train_loader, val_loader, num_epochs=50)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    train_losses, val_losses = train(model,train_loader, val_loader, device, num_epochs=50)
     print(f"Model has {sum(p.numel() for p in model.parameters())} parameters")
     
-    torch.save(model.state_dict(), Path(model_directory) + f'{model.__class__.__name__}_weights.pth')
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    torch.save(model.state_dict(), Path(model_directory) / f'{model.__class__.__name__}_{timestamp}_weights.pth')
+    
+    df = pd.DataFrame({
+        'train_loss': train_losses,
+        'val_loss': val_losses
+    }).to_csv(Path(model_directory) / f'{model.__class__.__name__}_{timestamp}_data.csv')
+
     # Test forward pass
-    dummy_input = torch.randn(1, 3, 256, 256)  # Batch size 1, RGB, 256x256
+    dummy_input = torch.randn(1, 3, 256, 256, device=device)  # Batch size 1, RGB, 256x256
     output = model(dummy_input)
     print(f"Input shape: {dummy_input.shape}")
     print(f"Output shape: {output.shape}")

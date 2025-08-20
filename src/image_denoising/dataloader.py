@@ -1,12 +1,11 @@
 from torch.utils.data import DataLoader, Dataset
 from torch import from_numpy
-from typing import Iterable
 import numpy as np 
 from pathlib import Path
 from torchvision import transforms
-from torchvision.io import read_image
 from PIL import Image
 from tqdm import tqdm
+import random
 class SIDDDataset(Dataset): 
     def __init__(self, scenes, data_directory, train_transforms=None, image_size=(256,256)):
         '''
@@ -26,20 +25,19 @@ class SIDDDataset(Dataset):
         clean, noisy = self.image_path_pairs[idx]
         
         try:
-            clean_img = Image.open(clean).convert('RGB')
+            clean_image = Image.open(clean).convert('RGB')
             noisy_image = Image.open(noisy).convert('RGB')
         except Exception as e:
             print(f"Error loading images for pair at {clean}")
             raise e
         
         # we can do processing here but I don't think we need to, we need to get baselines at somepoint
-
         if self.image_size:
-            clean_img = clean_img.resize(self.image_size, Image.BILINEAR)
+            clean_image = clean_image.resize(self.image_size, Image.BILINEAR)
             noisy_image = noisy_image.resize(self.image_size, Image.BILINEAR)
 
         # normalize images 
-        clean_array = np.array(clean_img, dtype=np.float32) / 255.0
+        clean_array = np.array(clean_image, dtype=np.float32) / 255.0
         noisy_array = np.array(noisy_image, dtype=np.float32) / 255.0
 
         # tensors: we are expecting (height, width, and channels) instead we want (channels, height, width)
@@ -88,6 +86,13 @@ class SIDDDataset(Dataset):
         # return all the pairs 
         return [(clean_imgs[0],n) for n in noisy_imgs]
 
+def get_random_crop(image, crop_size=(256, 256)):
+    h, w = image.size
+    new_h, new_w = crop_size
+    top = random.randint(0, h - new_h)
+    left = random.randint(0, w - new_w)
+    return image.crop((left, top, left + new_w, top + new_h))
+
 def split_data(scenes, train_ratio=0.7, val_ratio=0.15):
     scenes = np.array(scenes)
     n = len(scenes)
@@ -111,9 +116,9 @@ def create_dataloaders(scenes, data_dir, batch_size=16, num_workers=4, image_siz
     train, validate, test = split_data(scenes)
 
 
-    train_dataset = SIDDDataset(train, data_directory=data_dir,image_size=image_size)
-    val_dataset = SIDDDataset(test, data_directory=data_dir, image_size=image_size) 
-    test_dataset = SIDDDataset(validate, data_directory=data_dir,image_size=image_size)
+    train_dataset = SIDDDataset(train, data_dir, image_size=image_size)
+    val_dataset = SIDDDataset(test, data_dir, image_size=image_size) 
+    test_dataset = SIDDDataset(validate, data_dir, image_size=image_size)
     
     train_loader = DataLoader(train_dataset, 
                               batch_size=batch_size, 

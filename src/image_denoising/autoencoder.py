@@ -34,7 +34,7 @@ class DenoisingAutoencoder(nn.Module):
         )
 
         self.bottleneck = nn.Sequential(
-            nn.ConvTranspose2d(256, 512, kernel_size=3),
+            nn.ConvTranspose2d(256, 512, kernel_size=3, padding=1),
             nn.ReLU(inplace=True),
             nn.Conv2d(512, 512, kernel_size=3, padding=1),
             nn.ReLU(inplace=True),
