@@ -7,6 +7,8 @@ import yaml
 import pandas as pd
 from datetime import datetime
 
+import argparse
+
 def train(model, train_loader, val_loader, device, num_epochs=50, lr=0.001):
     model = model.to(device)
     
@@ -62,7 +64,10 @@ def train(model, train_loader, val_loader, device, num_epochs=50, lr=0.001):
 
 # Example usage
 if __name__ == "__main__":
-
+    parser = argparse.ArgumentParser(description='Train a a model')
+    parser.add_argument('config_path')
+    parser.add_argument('--model', type=str, choices=['DenoisingAutoencoder', 'DnCNN'])
+    
     config_path = '/home/nkhandker/projects/grad504/image-denoising/config.yaml'
 
     with open(config_path,'r') as f:
@@ -81,6 +86,7 @@ if __name__ == "__main__":
                     scenes.append(scene_name)
 
     train_loader, val_loader, test_loader = create_dataloaders(scenes, data_directory)
+    
     model = DenoisingAutoencoder(in_channels=3) 
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -89,16 +95,20 @@ if __name__ == "__main__":
     print(f"Model has {sum(p.numel() for p in model.parameters())} parameters")
     
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    identifier = f'{model.__class__.__name__}_{timestamp}'
+    
+    model_path = Path(model_directory) / f'{identifier}_weights.pth'
+    stats_path = Path(model_directory) / f'{identifier}_data.csv'
+    test_split_path = data_directory/f'{identifier}_test_split.csv'
 
-    torch.save(model.state_dict(), Path(model_directory) / f'{model.__class__.__name__}_{timestamp}_weights.pth')
+    torch.save(model.state_dict(), model_path)
     
     df = pd.DataFrame({
         'train_loss': train_losses,
         'val_loss': val_losses
-    }).to_csv(Path(model_directory) / f'{model.__class__.__name__}_{timestamp}_data.csv')
+    }).to_csv(stats_path)
 
-    # Test forward pass
-    dummy_input = torch.randn(1, 3, 256, 256, device=device)  # Batch size 1, RGB, 256x256
-    output = model(dummy_input)
-    print(f"Input shape: {dummy_input.shape}")
-    print(f"Output shape: {output.shape}")
+    # save this for testing
+    test_set = test_loader.get_image_file_pairs()
+    with open(test_split_path, 'w') as fp:
+            fp.write('\n'.join('%s %s' % x for x in test_set))

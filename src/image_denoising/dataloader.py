@@ -7,15 +7,19 @@ from PIL import Image
 from tqdm import tqdm
 import random
 class SIDDDataset(Dataset): 
-    def __init__(self, scenes, data_directory, train_transforms=None, image_size=(256,256)):
+    def __init__(self, scenes, data_directory, train_transforms=None, image_size=(256,256), image_pairs=None):
         '''
-            folders that contain the images  
+            scenes : names of the folders that contain the images  
+            data_directory: directory for them 
+            image_size : resize logic 
+            image_pairs : List of tuple of length two that has the full file path of a noisy and clean image 
         '''
         self.scenes = scenes 
         self.data_dir = Path(data_directory)
         self.train_transforms = train_transforms
         self.image_size = image_size # expect tuple for resizing
-        self.image_path_pairs = self._build_image_pairs(self.scenes)
+        # a way to just have image pairs loaded from a saved test file
+        self.image_path_pairs = image_pairs if image_pairs else self._build_image_pairs(self.scenes)
 
     def __len__(self): 
         return len(self.image_path_pairs)
@@ -59,6 +63,9 @@ class SIDDDataset(Dataset):
             pairs.extend(res)
         return pairs
 
+    def get_image_file_pairs(self):
+        return self.image_path_pairs
+    
     def _get_image_file_pairs(self, folder_path: Path): 
 
         if not folder_path.exists: 
@@ -115,16 +122,12 @@ def split_data(scenes, train_ratio=0.7, val_ratio=0.15):
 def create_dataloaders(scenes, data_dir, batch_size=16, num_workers=4, image_size=(256,256)):
     train, validate, test = split_data(scenes)
 
-
     train_dataset = SIDDDataset(train, data_dir, image_size=image_size)
     val_dataset = SIDDDataset(test, data_dir, image_size=image_size) 
     test_dataset = SIDDDataset(validate, data_dir, image_size=image_size)
     
-    train_loader = DataLoader(train_dataset, 
-                              batch_size=batch_size, 
-                              num_workers=num_workers, 
-                              shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
+    train_loader = DataLoader(train_dataset, batch_size, shuffle=True, num_workers=num_workers)
+    val_loader = DataLoader(val_dataset, batch_size, shuffle=False, num_workers=num_workers)
+    test_loader = DataLoader(test_dataset, batch_size, shuffle=False, num_workers=num_workers)
     
     return train_loader, val_loader, test_loader
