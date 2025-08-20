@@ -26,6 +26,7 @@ class SIDDDataset(Dataset):
     
     def __getitem__(self, idx):
         # unpack for clean and noisy paths
+        clean : Path
         clean, noisy = self.image_path_pairs[idx]
         
         try:
@@ -51,8 +52,11 @@ class SIDDDataset(Dataset):
 
         # might add support for transforms
 
-        # kinda messed this up soooooo
-        return noisy_tensor, clean_tensor 
+        # we want tags for reconstruction
+        # huge assumption that the clean and noisy are Path objects, beware 
+        scene =  clean.parts[-2] # only the parent of the file_name 
+
+        return noisy_tensor, clean_tensor, scene
     
     def _build_image_pairs(self, folders): 
         pairs = []
@@ -119,15 +123,7 @@ def split_data(scenes, train_ratio=0.7, val_ratio=0.15):
     return train_set.tolist(), val_set.tolist(), test_set.tolist()
     
 
-def create_dataloaders(scenes, data_dir, batch_size=16, num_workers=4, image_size=(256,256)):
-    train, validate, test = split_data(scenes)
-
-    train_dataset = SIDDDataset(train, data_dir, image_size=image_size)
-    val_dataset = SIDDDataset(test, data_dir, image_size=image_size) 
-    test_dataset = SIDDDataset(validate, data_dir, image_size=image_size)
-    
-    train_loader = DataLoader(train_dataset, batch_size, shuffle=True, num_workers=num_workers)
-    val_loader = DataLoader(val_dataset, batch_size, shuffle=False, num_workers=num_workers)
-    test_loader = DataLoader(test_dataset, batch_size, shuffle=False, num_workers=num_workers)
-    
-    return train_loader, val_loader, test_loader
+def create_dataloader(scenes, data_dir, batch_size=8, num_workers=4, image_size=(256,256), image_pairs=None):
+    dataset = SIDDDataset(scenes, data_dir, image_size=image_size, image_pairs=image_pairs)
+    dataloader = DataLoader(dataset, batch_size, shuffle=True, num_workers=num_workers)
+    return dataloader
